@@ -276,6 +276,9 @@ public enum Status {
     QUEUE_COUNT_ERROR(90001, "queue count error", "查询队列数据错误"),
 
     KERBEROS_STARTUP_STATE(100001, "get kerberos startup state error", "获取kerberos启动状态错误"),
+    //DEP
+    DEP_TASK_NOT_EXIST(1001, "dep task {0} does not exist", "DEP 任务 [{0}]不存在"),
+
     ;
 
     private final int code;

@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="org.apache.dolphinscheduler.dao.mapper.DepTaskMapper">
+    <resultMap id="depSchedulerTask" type="org.apache.dolphinscheduler.dao.entity.DepTask">
+        <result property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="type" column="type"/>
+        <result property="runFlag" column="runFlag"/>
+        <result property="maxRetryTimes" column="maxRetryTimes"/>
+        <result property="retryInterval" column="retryInterval"/>
+        <result property="params" column="params"/>
+        <result property="dependence" column="dependence"/>
+        <result property="conditionResult" column="conditionResult"/>
+        <result property="taskInstancePriority" column="taskInstancePriority"/>
+        <result property="timeout" column="timeout"/>
+        <result property="delayTime" column="delayTime"/>
+        <result property="taskType" column="taskType"/>
+        <result property="taskRelaId" column="taskRelaId"/>
+    </resultMap>
+
+    <sql id="baseSql">
+       id, name, `description`, `type`, runFlag, maxRetryTimes, retryInterval, params, dependence,
+       taskInstancePriority, workerGroupId, timeout, delayTime, processId, taskRelaId, taskType,taskRelaId
+    </sql>
+    <sql id="baseSqlV2">
+       ${alias}.id, ${alias}.name, ${alias}.`description`, ${alias}.`type`, ${alias}.runFlag, ${alias}.maxRetryTimes, ${alias}.retryInterval, ${alias}.params, ${alias}.dependence, ${alias}.taskInstancePriority,
+ ${alias}.workerGroupId, ${alias}.timeout, ${alias}.delayTime, ${alias}.processId, ${alias}.taskRelaId,
+ ${alias}.taskType,${alias}.taskRelaId
+    </sql>
+    <select id="queryDetailById" resultType="org.apache.dolphinscheduler.dao.entity.DepTask">
+        select
+        <include refid="baseSqlV2">
+            <property name="alias" value="p"/>
+        </include>
+        ,
+        u.user_name as user_name
+        from t_ds_project p
+        join t_ds_user u on p.user_id = u.id
+        where p.id = #{projectId}
+    </select>
+
+    <select id="queryDepTaskListPaging" resultType="org.apache.dolphinscheduler.dao.entity.DepTask">
+        select
+        <include refid="baseSqlV2">
+            <property name="alias" value="dst"/>
+        </include>
+        sc.schedule_release_state, tu.user_name
+        FROM dep_schduler_task dst
+        left join (select process_definition_id,release_state as schedule_release_state from t_ds_schedules group by
+        process_definition_id,release_state) sc on sc.process_definition_id = dst.processId
+        left join t_ds_user tu on td.user_id = tu.id
+        where dst.project_id = #{projectId}
+        <if test=" searchVal != null and searchVal != ''">
+            and dst.name like concat('%', #{searchVal}, '%')
+        </if>
+        order by sc.schedule_release_state desc,dst.update_time desc
+    </select>
+
+
+    <sql id="selectSchedulerTaskVo">
+
+     SELECT id, name, release_state, `description`, `type`, runFlag, maxRetryTimes, retryInterval, params, dependence,
+     taskInstancePriority, workerGroupId, timeout, delayTime, processId, taskRelaId, taskType, project_id
+      FROM dep_schduler_task
+
+    </sql>
+
+
+
+
+    <select id="selectDepTaskById" resultType="org.apache.dolphinscheduler.dao.entity.DepTask">
+        <include refid="selectSchedulerTaskVo"/>
+        where id = #{taskId}
+    </select>
+    <select id="selectDepTaskByName" resultType="org.apache.dolphinscheduler.dao.entity.DepTask">
+        <include refid="selectSchedulerTaskVo"/>
+        where name = #{taskName}
+    </select>
+
+    <insert id="insertSchedulerTask" parameterType="org.apache.dolphinscheduler.dao.entity.DepTask"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into dep_schduler_task
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="name != null">`name`,</if>
+            <if test="description != null">`description`,</if>
+            <if test="type != null">`type`,</if>
+            <if test="runFlag != null">runFlag,</if>
+            <if test="maxRetryTimes != null">maxRetryTimes,</if>
+            <if test="retryInterval != null">retryInterval,</if>
+            <if test="params != null">params,</if>
+            <if test="dependence != null">dependence,</if>
+            <if test="taskInstancePriority != null">taskInstancePriority,</if>
+            <if test="timeout != null">timeout,</if>
+            <if test="delayTime != null">delayTime,</if>
+            <if test="processId != null">processId,</if>
+            <if test="taskRelaId != null">taskRelaId,</if>
+            <if test="taskType != null">taskType,</if>
+            <if test="projectId != null">project_id</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="name != null">#{name},</if>
+            <if test="description != null">#{description},</if>
+            <if test="type != null">#{type},</if>
+            <if test="runFlag != null">#{runFlag},</if>
+            <if test="maxRetryTimes != null">#{maxRetryTimes},</if>
+            <if test="retryInterval != null">#{retryInterval},</if>
+            <if test="params != null">#{params},</if>
+            <if test="dependence != null">#{dependence},</if>
+            <if test="taskInstancePriority != null">#{taskInstancePriority},</if>
+            <if test="timeout != null">#{timeout},</if>
+            <if test="delayTime != null">#{delayTime},</if>
+            <if test="processId != null">#{processId},</if>
+            <if test="taskRelaId != null">#{taskRelaId},</if>
+            <if test="taskType != null">#{taskType},</if>
+            <if test="projectId != null">#{projectId}</if>
+        </trim>
+    </insert>
+
+    <update id="updateDepTask" parameterType="org.apache.dolphinscheduler.dao.entity.DepTask">
+        update dep_schduler_task
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="name != null">`name` = #{name},</if>
+            <if test="releaseState != null">release_state = #{releaseState},</if>
+            <if test="description != null">`description` = #{description},</if>
+            <if test="type != null">`type` = #{type},</if>
+            <if test="runFlag != null">runFlag = #{runFlag},</if>
+            <if test="maxRetryTimes != null">maxRetryTimes = #{maxRetryTimes},</if>
+            <if test="retryInterval != null">retryInterval = #{retryInterval},</if>
+            <if test="params != null">params = #{params},</if>
+            <if test="dependence != null">dependence = #{dependence},</if>
+            <if test="taskInstancePriority != null">taskInstancePriority = #{taskInstancePriority},</if>
+            <if test="workerGroupId != null">workerGroupId = #{workerGroupId},</if>
+            <if test="timeout != null">timeout = #{timeout},</if>
+            <if test="delayTime != null">delayTime = #{delayTime},</if>
+            <if test="processId != null">processId = #{processId},</if>
+            <if test="taskRelaId != null">taskRelaId = #{taskRelaId},</if>
+            <if test="taskType != null">taskType = #{taskType},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteSchedulerTaskById" parameterType="Long">
+        delete from dep_schduler_task where id = #{id}
+    </delete>
+
+    <delete id="deleteSchedulerTaskByIds" parameterType="String">
+        delete from dep_schduler_task where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+
+</mapper>

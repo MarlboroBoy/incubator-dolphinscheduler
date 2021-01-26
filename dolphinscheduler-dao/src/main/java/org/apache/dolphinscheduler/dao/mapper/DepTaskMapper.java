@@ -20,8 +20,10 @@ public interface DepTaskMapper extends BaseMapper<DepTask> {
 
     void updateDepTask(DepTask depTask);
 
-    IPage<DepTask> queryDepTaskListPaging(Page<DepTask> page, String searchVal, Integer userId, int id, boolean admin);
+    IPage<DepTask> queryDepTaskListPaging(Page<DepTask> page, @Param("searchVal")String searchVal,  @Param("projectId") int projectId);
 
-    List<DepTask> queryDepTaskList();
+    List<DepTask> queryDepTaskList( @Param("projectId") int projectId,@Param("searchVal") String searchVal);
+
+    int deleteDepaskById(@Param("id")long id);
 
 }

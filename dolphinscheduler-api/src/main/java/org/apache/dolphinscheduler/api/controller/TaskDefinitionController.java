@@ -43,7 +43,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.apache.dolphinscheduler.api.enums.Status.BATCH_DELETE_PROCESS_DEFINE_BY_IDS_ERROR;
-import static org.apache.dolphinscheduler.api.enums.Status.CREATE_PROCESS_DEFINITION;
+import static org.apache.dolphinscheduler.api.enums.Status.CREATE_DEP_TASK_EROOR;
 import static org.apache.dolphinscheduler.api.enums.Status.DELETE_PROCESS_DEFINE_BY_ID_ERROR;
 import static org.apache.dolphinscheduler.api.enums.Status.QUERY_DATAIL_OF_PROCESS_DEFINITION_ERROR;
 import static org.apache.dolphinscheduler.api.enums.Status.QUERY_PROCESS_DEFINITION_LIST;
@@ -72,10 +72,10 @@ public class TaskDefinitionController extends  BaseController{
      * @param projectName project name
      * @return create result code
      */
-    @ApiOperation(value = "save", notes = "CREATE_PROCESS_DEFINITION_NOTES")
+    @ApiOperation(value = "save", notes = "CREATE_DEP_TASK_NOTES")
     @PostMapping(value = "/save")
     @ResponseStatus(HttpStatus.CREATED)
-    @ApiException(CREATE_PROCESS_DEFINITION)
+    @ApiException(CREATE_DEP_TASK_EROOR)
     public Result createProcessDefinition(@ApiIgnore @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                           @ApiParam(name = "projectName", value = "PROJECT_NAME", required = true) @PathVariable String projectName,
                                           @RequestBody DepTask depTask
@@ -85,8 +85,6 @@ public class TaskDefinitionController extends  BaseController{
         Map<String, Object> result = depTaskService.createTask(loginUser, projectName, depTask);
         return returnDataList(result);
     }
-
-
 
     /**
      * verify process definition name unique
@@ -114,44 +112,17 @@ public class TaskDefinitionController extends  BaseController{
 
     /**
      * update process definition
-     *
-     * @param loginUser login user
-     * @param projectName project name
-     * @param name process definition name
-     * @param id process definition id
-     * @param processDefinitionJson process definition json
-     * @param description description
-     * @param locations locations for nodes
-     * @param connects connects for nodes
-     * @return update result code
      */
 
-    @ApiOperation(value = "updateProcessDefinition", notes = "更新任务")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name = "name", value = "PROCESS_DEFINITION_NAME", required = true, type = "String"),
-            @ApiImplicitParam(name = "id", value = "PROCESS_DEFINITION_ID", required = true, dataType = "Int", example = "100"),
-            @ApiImplicitParam(name = "processDefinitionJson", value = "PROCESS_DEFINITION_JSON", required = true, type = "String"),
-            @ApiImplicitParam(name = "locations", value = "PROCESS_DEFINITION_LOCATIONS", required = true, type = "String"),
-            @ApiImplicitParam(name = "connects", value = "PROCESS_DEFINITION_CONNECTS", required = true, type = "String"),
-            @ApiImplicitParam(name = "description", value = "PROCESS_DEFINITION_DESC", required = false, type = "String"),
-    })
+    @ApiOperation(value = "updateTaskDefinition", notes = "更新任务")
     @PostMapping(value = "/update")
     @ResponseStatus(HttpStatus.OK)
     @ApiException(UPDATE_PROCESS_DEFINITION_ERROR)
     public Result updateProcessDefinition(@ApiIgnore @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
                                           @ApiParam(name = "projectName", value = "PROJECT_NAME", required = true) @PathVariable String projectName,
-                                          @RequestParam(value = "name", required = true) String name,
-                                          @RequestParam(value = "id", required = true) int id,
-                                          @RequestParam(value = "processDefinitionJson", required = true) String processDefinitionJson,
-                                          @RequestParam(value = "locations", required = false) String locations,
-                                          @RequestParam(value = "connects", required = false) String connects,
-                                          @RequestParam(value = "description", required = false) String description) {
+                                          @RequestBody DepTask depTask) {
 
-        logger.info("login user {}, update process define, project name: {}, process define name: {}, "
-                        + "process_definition_json: {}, desc: {}, locations:{}, connects:{}",
-                loginUser.getUserName(), projectName, name, processDefinitionJson, description, locations, connects);
-        Map<String, Object> result = processDefinitionService.updateProcessDefinition(loginUser, projectName, id, name,
-                processDefinitionJson, description, locations, connects);
+        Map<String, Object> result = depTaskService.updateTaskDefinition(loginUser, projectName, depTask);
         return returnDataList(result);
     }
 
@@ -235,11 +206,12 @@ public class TaskDefinitionController extends  BaseController{
     @ResponseStatus(HttpStatus.OK)
     @ApiException(QUERY_PROCESS_DEFINITION_LIST)
     public Result queryDepTaskList(@ApiIgnore @RequestAttribute(value = Constants.SESSION_USER) User loginUser,
-                                             @ApiParam(name = "projectName", value = "PROJECT_NAME", required = true) @PathVariable String projectName
+                                             @ApiParam(name = "projectName", value = "PROJECT_NAME", required = true) @PathVariable String projectName,
+                                   @RequestParam(value = "searchVal", required = false) String searchVal
     ) {
         logger.info("query process definition list, login user:{}, project name:{}",
                 loginUser.getUserName(), projectName);
-        Map<String, Object> result = depTaskService.queryDepTaskList(loginUser, projectName);
+        Map<String, Object> result = depTaskService.queryDepTaskList(loginUser, projectName,searchVal);
         return returnDataList(result);
     }
 

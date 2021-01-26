@@ -278,7 +278,7 @@ public enum Status {
     KERBEROS_STARTUP_STATE(100001, "get kerberos startup state error", "获取kerberos启动状态错误"),
     //DEP
     DEP_TASK_NOT_EXIST(1001, "dep task {0} does not exist", "DEP 任务 [{0}]不存在"),
-
+    CREATE_DEP_TASK_EROOR(1002, "create dep task error", "创建任务错误"),
     ;
 
     private final int code;

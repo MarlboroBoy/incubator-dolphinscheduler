@@ -64,6 +64,7 @@ public class DepTaskImpl extends BaseService implements DepTaskService {
         }
         Map<String, Object> result = new HashMap<>();
         Project project = projectMapper.queryByName(projectName);
+        depTask.setProjectId(project.getId());
         // check project auth
         Map<String, Object> checkResult = projectService.checkProjectAndAuth(loginUser, project, projectName);
         Status resultStatus = (Status) checkResult.get(Constants.STATUS);
@@ -199,7 +200,7 @@ public class DepTaskImpl extends BaseService implements DepTaskService {
         }
         Page<DepTask> page = new Page<>(pageNo, pageSize);
         IPage<DepTask> depTaskIPage = depTaskMapper.queryDepTaskListPaging(
-                page, searchVal, userId, project.getId(), isAdmin(loginUser));
+                page, searchVal, project.getId());
         PageInfo<DepTask> pageInfo = new PageInfo<>(pageNo, pageSize);
         pageInfo.setTotalCount((int) depTaskIPage.getTotal());
         pageInfo.setLists(depTaskIPage.getRecords());
@@ -209,9 +210,15 @@ public class DepTaskImpl extends BaseService implements DepTaskService {
     }
 
     @Override
-    public Map<String, Object> queryDepTaskList(User loginUser, String projectName) {
+    public Map<String, Object> queryDepTaskList(User loginUser, String projectName,String seachVal) {
+        Project project = projectMapper.queryByName(projectName);
+        Map<String, Object> checkResult = projectService.checkProjectAndAuth(loginUser, project, projectName);
+        Status resultStatus = (Status) checkResult.get(Constants.STATUS);
+        if (resultStatus != Status.SUCCESS) {
+            return checkResult;
+        }
         Map<String,Object> result = new HashMap<>();
-        List<DepTask> depTasks = depTaskMapper.queryDepTaskList();
+        List<DepTask> depTasks = depTaskMapper.queryDepTaskList(project.getId(),seachVal);
         result.put(Constants.DATA_LIST, depTasks);
         putMsg(result, Status.SUCCESS);
         return result;
@@ -255,6 +262,94 @@ public class DepTaskImpl extends BaseService implements DepTaskService {
             putMsg(result, Status.SUCCESS);
         }
         return result;
+    }
+
+    @Override
+    public Map<String, Object> updateTaskDefinition(User loginUser, String projectName, DepTask depTask) {
+
+        Map<String, Object> result = new HashMap<>();
+        Project project = projectMapper.queryByName(projectName);
+        depTask.setProjectId(project.getId());
+        // check project auth
+        Map<String, Object> checkResult = projectService.checkProjectAndAuth(loginUser, project, projectName);
+        Status resultStatus = (Status) checkResult.get(Constants.STATUS);
+        if (resultStatus != Status.SUCCESS) {
+            return checkResult;
+        }
+        List<Task> tasks = new ArrayList<>();
+        Task taskBuild = Task.TaskBuilder.aTask()
+                .withType(depTask.getType())
+                .withId(depTask.getId())
+                .withName(depTask.getName())
+                .withParams(depTask.getParams())
+                .withDescription(depTask.getDescription())
+                .withRunFlag(depTask.getRunFlag())
+                .withConditionResult(depTask.getConditionResult())
+                .withDependence("{}")
+                .withMaxRetryTimes(depTask.getMaxRetryTimes())
+                .withRetryInterval(depTask.getRetryInterval())
+                .withDelayTime(depTask.getDelayTime())
+                .withTimeout(depTask.getTimeout())
+                .withWaitStartTimeout("{}")
+                .withTaskInstancePriority(depTask.getTaskInstancePriority())
+                .withWorkerGroup(depTask.getWorkerGroup())
+                .withPreTasks(new ArrayList()).build();
+        DepProcessBuild processData = new DepProcessBuild();
+        tasks.add(taskBuild);
+        processData.setGlobalParams(new ArrayList<>());
+
+        if(StringUtils.isNotEmpty(depTask.getDependence())){
+            Map<String,Object> timeOut = new HashMap<>();
+            timeOut.put("strategy","");
+            timeOut.put("interval",null);
+            timeOut.put("enable",false);
+            Map<String,Object> waitStartTimeout = new HashMap<String, Object>(){{
+                put("strategy","FAILED");
+                put("interval",null);
+                put("checkInterval",null);
+                put("enable",false);
+            }};
+            Task denpenceTask = Task.TaskBuilder.aTask()
+                    .withType("DEPENDENT")
+                    .withId(depTask.getId()+1)
+                    .withName(depTask.getName()+DENPENDENCE)
+                    .withParams("{}")
+                    .withDescription(depTask.getDescription())
+                    .withRunFlag(depTask.getRunFlag())
+                    .withConditionResult(depTask.getConditionResult())
+                    .withDependence(depTask.getDependence())
+                    .withMaxRetryTimes(0)
+                    .withRetryInterval(1)
+                    .withDelayTime(0)
+                    .withTimeout(JSONUtils.toJsonString(timeOut))
+                    .withWaitStartTimeout(JSONUtils.toJsonString(waitStartTimeout))
+                    .withTaskInstancePriority(depTask.getTaskInstancePriority())
+                    .withWorkerGroup(depTask.getWorkerGroup())
+                    .withPreTasks(new ArrayList()).build();
+            tasks.add(denpenceTask);
+        }
+        processData.setTasks(tasks);
+
+        processData.setTenantId(depTask.getTenantId());
+        String processDefinitionJson = JSONUtils.toJsonString(processData);
+        Map<String, Object> updateProcessDefinition = processDefinitionService.updateProcessDefinition(loginUser, projectName,
+                depTask.getProcessId(),
+                depTask.getName(), processDefinitionJson, depTask.getDescription(),
+                parseLocations(processData.getTasks()),
+                parseConnects(processData.getTasks()));
+        Status status = (Status) updateProcessDefinition.get(Constants.STATUS);
+        if(status.getCode() == 0){
+            Integer  id  = (Integer) updateProcessDefinition.get(PROCESSDEFINITIONID);
+            depTask.setProcessId(id);
+            depTask.setProjectId(project.getId());
+            depTaskMapper.updateDepTask(depTask);
+            //result.put(Constants.DATA_LIST, processDefineMapper.selectById(processDefine.getId()));
+            putMsg(result, Status.SUCCESS);
+            result.put(PROCESSDEFINITIONID, depTask.getId());
+            return result;
+        }else {
+            return updateProcessDefinition;
+        }
     }
 
 
